@@ -1,2 +1,8 @@
-package controller;public class LoginController {
+package controller;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class LoginController {
+
 }
