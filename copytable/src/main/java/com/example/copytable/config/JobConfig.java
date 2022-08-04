@@ -1,18 +1,17 @@
 package com.example.copytable.config;
 
-import com.example.copytable.batch.DepartmentItemProcessor;
+import com.example.copytable.listener.CustomJobListener;
+import com.example.copytable.processor.DepartmentItemProcessor;
+import com.example.copytable.listener.CustomItemReaderListener;
+import com.example.copytable.listener.CustomStepExcutionListener;
 import com.example.copytable.model.postgre.Department;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.database.JpaCursorItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -43,11 +42,15 @@ public class JobConfig {
     @Autowired
     private DepartmentItemProcessor departmentItemProcessor;
 
+    @Autowired
+    private CustomJobListener customJobListener;
 
-    @Bean
+
+    @Bean(name = "migrationJob")
     public Job migrationJob() {
         return jobBuilderFactory.get("migration")
                 .incrementer(new RunIdIncrementer())
+                .listener(customJobListener)
                 .start(migrationStep())
                 .build();
     }
@@ -56,6 +59,8 @@ public class JobConfig {
     public Step migrationStep() {
 
         return stepBuilderFactory.get("step")
+                .listener(new CustomStepExcutionListener())
+                .listener(new CustomItemReaderListener())
                 .<Department, com.example.copytable.model.sql.Department>chunk(1)
                 .reader(jpaCursorItemReader())
                 .processor(departmentItemProcessor)
@@ -68,6 +73,7 @@ public class JobConfig {
                 .transactionManager(jpaTransactionManager)
                 .build();
     }
+
 
 
 

@@ -1,4 +1,4 @@
-package com.example.copytable.batch;
+package com.example.copytable.processor;
 
 import com.example.copytable.model.postgre.Department;
 import org.springframework.batch.item.ItemProcessor;
