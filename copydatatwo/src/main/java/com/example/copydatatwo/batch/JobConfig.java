@@ -91,7 +91,7 @@ public class JobConfig {
                 .sql(NamedParameterUtils.substituteNamedParameters("Select id,dept_name as deptName from department where id = :id"
                         , new MapSqlParameterSource(ofEntries(entry("id", id))))
                 )
-                .queryArguments(id)
+                .queryArguments(List.of(id))
 //                .rowMapper(new BeanPropertyRowMapper<>() {
 //                    {
 //                        setMappedClass(Department.class);
