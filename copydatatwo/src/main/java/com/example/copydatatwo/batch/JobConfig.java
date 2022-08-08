@@ -7,6 +7,9 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.integration.async.AsyncItemProcessor;
+import org.springframework.batch.integration.async.AsyncItemWriter;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
@@ -18,10 +21,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
@@ -50,8 +55,9 @@ public class JobConfig {
     DataSource datasource;
 
 
-    @Bean
+//    @Bean
     public Job migrationJob(Step migrationStep) {
+
 
         return jobBuilderFactory
                 .get("migrationJob")
@@ -59,16 +65,39 @@ public class JobConfig {
                 .start(migrationStep)
                 .build();
     }
+// multi-threaded
+//    @Bean
+//    public Step migrationStep(JdbcCursorItemReader<Department> jdbcCursorItemReader) {
+//      var taskExecutor = new ThreadPoolTaskExecutor();
+//      taskExecutor.setCorePoolSize(3);
+//      taskExecutor.setMaxPoolSize(3);
+//
+//      taskExecutor.afterPropertiesSet();
+//
+//        return stepBuilderFactory
+//                .get("migrationStep")
+//                .<Department, com.example.copydatatwo.model.sql.Department>chunk(1)
+//                .reader(jdbcCursorItemReader)
+//                .writer(jdbcBatchItemWriter())
+//                .taskExecutor(taskExecutor)
+//                .build();
+//    }
 
+    // async
     @Bean
     public Step migrationStep(JdbcCursorItemReader<Department> jdbcCursorItemReader) {
+
+
         return stepBuilderFactory
                 .get("migrationStep")
                 .<Department, com.example.copydatatwo.model.sql.Department>chunk(1)
                 .reader(jdbcCursorItemReader)
-                .writer(jdbcBatchItemWriter())
+                .processor(asyncItemProcessor())
+                .writer(asyncItemWriter())
                 .build();
     }
+
+
 
     @Bean
     @StepScope
@@ -105,6 +134,7 @@ public class JobConfig {
 //                )
                 .rowMapper(new BeanPropertyRowMapper<>(Department.class))
                 //  .preparedStatementSetter(new ArgumentPreparedStatementSetter(new Object[]{id}))
+                .verifyCursorPosition(false)
                 .build();
 
     }
@@ -118,6 +148,28 @@ public class JobConfig {
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
                 .build();
     }
+
+
+    @Bean
+    public AsyncItemProcessor asyncItemProcessor(){
+        AsyncItemProcessor asyncItemProcessor= new AsyncItemProcessor();
+        asyncItemProcessor.setTaskExecutor(new SimpleAsyncTaskExecutor());
+        asyncItemProcessor.setDelegate(new DepartmentIemProcessor());
+
+
+        return asyncItemProcessor;
+
+    }
+    @Bean
+    public AsyncItemWriter<com.example.copydatatwo.model.sql.Department> asyncItemWriter(){
+
+        var asyncItemWriter = new AsyncItemWriter<com.example.copydatatwo.model.sql.Department>();
+        asyncItemWriter.setDelegate(jdbcBatchItemWriter());
+
+        return asyncItemWriter;
+    }
+
+
 
 
 }
