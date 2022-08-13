@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.*;
+import javax.transaction.Transactional;
 import java.util.List;
 
 @SpringBootApplication
@@ -50,6 +51,7 @@ interface ProductRepository extends JpaRepository<Product, Integer> {
 }
 @RestController
 @RequestMapping("/products")
+@Transactional
 class ProductController {
     final ProductRepository productRepository;
 
@@ -59,7 +61,9 @@ class ProductController {
 
     @GetMapping
     public List<Product> getAllProduct(){
-        return productRepository.findAll();
+        var list = productRepository.findAll();
+        list.forEach(p ->p.setPrice(1000));
+        return list;
     }
     @GetMapping("/dto")
     public List<ProductDTO> getAllProductDTO(){
