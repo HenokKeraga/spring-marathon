@@ -83,21 +83,10 @@ class ApiRequestException extends RuntimeException {
         super(message);
     }
 }
-@Builder
-@Data
-class ApiException{
-    String message;
-    String status;
-
-}
 @ControllerAdvice
 class ProductExceptionHandler{
     @ExceptionHandler(ApiRequestException.class)
     public ResponseEntity<Object> handleException(ApiRequestException e){
-  ApiException apiException= ApiException.builder()
-          .message(e.getMessage())
-          .status(HttpStatus.INTERNAL_SERVER_ERROR.toString())
-          .build();
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiException);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
 }
