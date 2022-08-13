@@ -79,7 +79,6 @@ class ProductController {
 }
 
 class ApiRequestException extends RuntimeException {
-
     public ApiRequestException(String message) {
         super(message);
     }
@@ -93,8 +92,6 @@ class ApiException{
 }
 @ControllerAdvice
 class ProductExceptionHandler{
-
-
     @ExceptionHandler(ApiRequestException.class)
     public ResponseEntity<Object> handleException(ApiRequestException e){
   ApiException apiException= ApiException.builder()
