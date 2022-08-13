@@ -97,9 +97,7 @@ class ProductExceptionHandler{
   ApiException apiException= ApiException.builder()
           .message(e.getMessage())
           .status(HttpStatus.INTERNAL_SERVER_ERROR.toString())
-
           .build();
-
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiException);
     }
 }
