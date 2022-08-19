@@ -31,7 +31,7 @@ public class SplitJobConfig {
     Step migrationStep;
 
 
-    @Bean
+//    @Bean
     public Job parallelJob() {
         return jobBuilderFactory
                 .get("parallelJob")

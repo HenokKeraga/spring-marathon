@@ -10,12 +10,11 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.integration.async.AsyncItemProcessor;
 import org.springframework.batch.integration.async.AsyncItemWriter;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
-import org.springframework.batch.item.database.JdbcBatchItemWriter;
-import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.item.database.*;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.support.ListPreparedStatementSetter;
+import org.springframework.batch.item.database.support.MySqlPagingQueryProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +29,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +55,7 @@ public class JobConfig {
     DataSource datasource;
 
 
-//    @Bean
+    @Bean
     public Job migrationJob(Step migrationStep) {
 
 
@@ -91,9 +91,10 @@ public class JobConfig {
         return stepBuilderFactory
                 .get("migrationStep")
                 .<Department, com.example.copydatatwo.model.sql.Department>chunk(1)
-                .reader(jdbcCursorItemReader)
+                .reader(jdbcPagingItemReader())
                 .processor(asyncItemProcessor())
                 .writer(asyncItemWriter())
+                .taskExecutor(new SimpleAsyncTaskExecutor())
                 .build();
     }
 
@@ -137,6 +138,29 @@ public class JobConfig {
                 .verifyCursorPosition(false)
                 .build();
 
+    }
+
+    @Bean
+    public JdbcPagingItemReader<Department> jdbcPagingItemReader() {
+        JdbcPagingItemReader<Department> pagingItemReader = new JdbcPagingItemReader<>();
+
+        pagingItemReader.setDataSource(postgreDBDatasource);
+        pagingItemReader.setFetchSize(3);
+        pagingItemReader.setPageSize(3);
+        pagingItemReader.setRowMapper(new BeanPropertyRowMapper<>(Department.class));
+
+        MySqlPagingQueryProvider mySqlPagingQueryProvider = new MySqlPagingQueryProvider();
+        mySqlPagingQueryProvider.setSelectClause("id,dept_name as deptName");
+        mySqlPagingQueryProvider.setFromClause("FROM department");
+
+        Map<String, Order> orderByKeys = new HashMap<>();
+        orderByKeys.put("id", Order.ASCENDING);
+
+        mySqlPagingQueryProvider.setSortKeys(orderByKeys);
+
+        pagingItemReader.setQueryProvider(mySqlPagingQueryProvider);
+
+        return pagingItemReader;
     }
 
     @Bean
